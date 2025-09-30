@@ -16,6 +16,7 @@ import com.google.android.material.chip.ChipGroup;
 import vn.edu.usth.flickrbrowser.R;
 import vn.edu.usth.flickrbrowser.core.data.FavoritesStore;
 import vn.edu.usth.flickrbrowser.core.model.PhotoItem;
+import vn.edu.usth.flickrbrowser.core.util.NetUtils;
 import vn.edu.usth.flickrbrowser.core.utils.ImageDownloader;
 
 public class DetailActivity extends AppCompatActivity {
@@ -25,7 +26,7 @@ public class DetailActivity extends AppCompatActivity {
     private ImageView photoView;
     private TextView title, owner;
     private ChipGroup chipGroupTags;
-    private ImageButton btnFavorite, btnShare, btnDownload;
+    private ImageButton btnFavorite, btnShare, btnOpen, btnDownload;
     private PhotoItem currentPhoto;
     private FavoritesStore favoritesStore;
 
@@ -51,6 +52,7 @@ public class DetailActivity extends AppCompatActivity {
         chipGroupTags = findViewById(R.id.chipGroupTags);
         btnFavorite = findViewById(R.id.btnFavorite);
         btnShare = findViewById(R.id.btnShare);
+        btnOpen = findViewById(R.id.btnOpen);
         btnDownload = findViewById(R.id.btnDownload);
 
         favoritesStore = FavoritesStore.get(this);
@@ -63,10 +65,22 @@ public class DetailActivity extends AppCompatActivity {
     }
 
     private void bindPhoto(PhotoItem photo) {
-        // Load ảnh full size
+        // Load ảnh full size with error handling
         Glide.with(this)
                 .load(photo.getFullUrl())
                 .placeholder(R.drawable.placeholder_grey)
+                .error(R.drawable.placeholder_grey)
+                .listener(new com.bumptech.glide.request.RequestListener<android.graphics.drawable.Drawable>() {
+                    @Override
+                    public boolean onLoadFailed(@androidx.annotation.Nullable com.bumptech.glide.load.engine.GlideException e, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, boolean isFirstResource) {
+                        Toast.makeText(DetailActivity.this, R.string.error_load_image, Toast.LENGTH_SHORT).show();
+                        return false;
+                    }
+                    @Override
+                    public boolean onResourceReady(android.graphics.drawable.Drawable resource, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
+                        return false;
+                    }
+                })
                 .into(photoView);
 
         title.setText(photo.getTitle());
@@ -98,10 +112,42 @@ public class DetailActivity extends AppCompatActivity {
         });
 
         btnShare.setOnClickListener(v -> {
+            // Check network before sharing
+            if (!NetUtils.hasNetwork(this)) {
+                Toast.makeText(this, R.string.error_no_network, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            // Validate URL
+            String url = photo.getFullUrl();
+            if (url == null || url.isEmpty()) {
+                Toast.makeText(this, R.string.error_empty_url, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
             Intent shareIntent = new Intent(Intent.ACTION_SEND);
-            shareIntent.putExtra(Intent.EXTRA_TEXT, photo.getFullUrl());
+            shareIntent.putExtra(Intent.EXTRA_TEXT, url);
             shareIntent.setType("text/plain");
             startActivity(Intent.createChooser(shareIntent, "Share via"));
+        });
+
+        btnOpen.setOnClickListener(v -> {
+            // Check network before opening
+            if (!NetUtils.hasNetwork(this)) {
+                Toast.makeText(this, R.string.error_no_network, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            // Validate URL
+            String url = photo.getFullUrl();
+            if (url == null || url.isEmpty()) {
+                Toast.makeText(this, R.string.error_empty_url, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            Intent openIntent = new Intent(Intent.ACTION_VIEW);
+            openIntent.setData(Uri.parse(url));
+            startActivity(openIntent);
         });
 
         btnDownload.setOnClickListener(v -> {

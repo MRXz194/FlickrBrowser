@@ -6,6 +6,7 @@ import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import vn.edu.usth.flickrbrowser.BuildConfig;
+import java.util.concurrent.TimeUnit;
 
 public class ApiClient {
     private static Retrofit retrofit;
@@ -20,6 +21,9 @@ public class ApiClient {
         logging.setLevel(HttpLoggingInterceptor.Level.BODY);
 
         OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(15, TimeUnit.SECONDS)
+                .writeTimeout(15, TimeUnit.SECONDS)
                 .addInterceptor(chain -> {
                     Request req = chain.request().newBuilder()
                             .addHeader("x-rapidapi-key", BuildConfig.RAPIDAPI_KEY)

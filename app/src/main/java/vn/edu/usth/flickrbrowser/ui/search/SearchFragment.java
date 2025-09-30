@@ -21,6 +21,7 @@ import java.util.List;
 import vn.edu.usth.flickrbrowser.R;
 import vn.edu.usth.flickrbrowser.core.api.FlickrRepo;
 import vn.edu.usth.flickrbrowser.core.model.PhotoItem;
+import vn.edu.usth.flickrbrowser.core.util.NetUtils;
 import vn.edu.usth.flickrbrowser.databinding.FragmentSearchBinding;
 import vn.edu.usth.flickrbrowser.ui.common.EndlessScrollListener;
 import vn.edu.usth.flickrbrowser.ui.common.GridSpacingDecoration;
@@ -56,6 +57,15 @@ public class SearchFragment extends Fragment {
             startActivity(i);
         });
         binding.rvPhotos.setAdapter(adapter);
+
+        // Pull-to-Refresh
+        binding.swipeRefresh.setOnRefreshListener(() -> {
+            if (!currentQuery.isEmpty()) {
+                doSearch(currentQuery);
+            } else {
+                binding.swipeRefresh.setRefreshing(false);
+            }
+        });
 
         // 1) AppBar title
         binding.topAppBar.setTitle(R.string.search_hint);
@@ -133,6 +143,7 @@ public class SearchFragment extends Fragment {
 
     private void setState(@NonNull PhotoState state) {
         if (state instanceof PhotoState.Loading) {
+            binding.swipeRefresh.setRefreshing(true);
             binding.shimmerGrid.getRoot().setVisibility(View.VISIBLE);
             startShimmers(binding.shimmerGrid.getRoot());
 
@@ -140,6 +151,7 @@ public class SearchFragment extends Fragment {
             if (binding.emptyView != null) binding.emptyView.getRoot().setVisibility(View.GONE);
         }
         else if (state instanceof PhotoState.Success) {
+            binding.swipeRefresh.setRefreshing(false);
             List<PhotoItem> items = ((PhotoState.Success) state).getItems();
             stopShimmers(binding.shimmerGrid.getRoot());
             binding.shimmerGrid.getRoot().setVisibility(View.GONE);
@@ -149,6 +161,7 @@ public class SearchFragment extends Fragment {
             adapter.submitList(items);
         }
         else if (state instanceof PhotoState.Empty) {
+            binding.swipeRefresh.setRefreshing(false);
             stopShimmers(binding.shimmerGrid.getRoot());
             binding.shimmerGrid.getRoot().setVisibility(View.GONE);
 
@@ -156,6 +169,7 @@ public class SearchFragment extends Fragment {
             if (binding.emptyView != null) binding.emptyView.getRoot().setVisibility(View.VISIBLE);
         }
         else if (state instanceof PhotoState.Error) {
+            binding.swipeRefresh.setRefreshing(false);
             stopShimmers(binding.shimmerGrid.getRoot());
             binding.shimmerGrid.getRoot().setVisibility(View.GONE);
 
@@ -168,6 +182,18 @@ public class SearchFragment extends Fragment {
     }
 
     private void doSearch(String query) {
+        // Validate empty query - don't call API
+        if (query == null || query.trim().isEmpty()) {
+            setState(new PhotoState.Empty());
+            return;
+        }
+        
+        // Check network before searching
+        if (!NetUtils.hasNetwork(requireContext())) {
+            Toast.makeText(requireContext(), R.string.error_no_network, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
         // Reset for new search
         currentQuery = query;
         currentPage = 1;
@@ -192,13 +218,22 @@ public class SearchFragment extends Fragment {
             @Override
             public void err(Throwable e) {
                 isLoading = false;
-                setState(new PhotoState.Error("Search failed"));
+                String errorMsg = e.getMessage() != null && e.getMessage().contains("timeout") 
+                    ? getString(R.string.error_timeout) 
+                    : getString(R.string.error_search_failed);
+                setState(new PhotoState.Error(errorMsg));
             }
         });
     }
 
     private void loadMorePhotos() {
         if (isLoading) return;
+        
+        // Check network before loading more
+        if (!NetUtils.hasNetwork(requireContext())) {
+            Toast.makeText(requireContext(), R.string.error_no_network, Toast.LENGTH_SHORT).show();
+            return;
+        }
         
         isLoading = true;
         currentPage++;
@@ -217,7 +252,10 @@ public class SearchFragment extends Fragment {
             public void err(Throwable e) {
                 isLoading = false;
                 currentPage--; // Revert page on error
-                Toast.makeText(requireContext(), "Failed to load more", Toast.LENGTH_SHORT).show();
+                String errorMsg = e.getMessage() != null && e.getMessage().contains("timeout") 
+                    ? getString(R.string.error_timeout) 
+                    : getString(R.string.error_search_failed);
+                Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_SHORT).show();
             }
         });
     }

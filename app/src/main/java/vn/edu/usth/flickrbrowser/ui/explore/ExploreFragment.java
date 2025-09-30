@@ -11,6 +11,7 @@ import java.util.*;
 import vn.edu.usth.flickrbrowser.R;
 import vn.edu.usth.flickrbrowser.core.api.FlickrRepo;
 import vn.edu.usth.flickrbrowser.core.model.PhotoItem;
+import vn.edu.usth.flickrbrowser.core.util.NetUtils;
 import vn.edu.usth.flickrbrowser.ui.common.EndlessScrollListener;
 import vn.edu.usth.flickrbrowser.ui.state.PhotoState;
 
@@ -66,6 +67,13 @@ public class ExploreFragment extends Fragment {
         super.onViewCreated(v,b); load();
     }
     private void load(){
+        // Check network first
+        if (!NetUtils.hasNetwork(requireContext())) {
+            swipe.setRefreshing(false);
+            Toast.makeText(requireContext(), R.string.error_no_network, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
         currentPage = 1;
         if (scrollListener != null) scrollListener.resetState();
         
@@ -84,13 +92,23 @@ public class ExploreFragment extends Fragment {
             public void err(Throwable t){
                 swipe.setRefreshing(false);
                 isLoading = false;
-                setState(new PhotoState.Error("Load error"));
+                // Check if timeout or network error
+                String errorMsg = t.getMessage() != null && t.getMessage().contains("timeout") 
+                    ? getString(R.string.error_timeout) 
+                    : getString(R.string.error_load_failed);
+                setState(new PhotoState.Error(errorMsg));
             }
         });
     }
 
     private void loadMorePhotos() {
         if (isLoading) return;
+        
+        // Check network before loading more
+        if (!NetUtils.hasNetwork(requireContext())) {
+            Toast.makeText(requireContext(), R.string.error_no_network, Toast.LENGTH_SHORT).show();
+            return;
+        }
         
         isLoading = true;
         currentPage++;
@@ -109,7 +127,10 @@ public class ExploreFragment extends Fragment {
             public void err(Throwable t) {
                 isLoading = false;
                 currentPage--; // Revert page on error
-                Toast.makeText(requireContext(), "Failed to load more", Toast.LENGTH_SHORT).show();
+                String errorMsg = t.getMessage() != null && t.getMessage().contains("timeout") 
+                    ? getString(R.string.error_timeout) 
+                    : getString(R.string.error_load_failed);
+                Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_SHORT).show();
             }
         });
     }
