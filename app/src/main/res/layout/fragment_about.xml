@@ -3,13 +3,17 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/md_theme_background">
+    android:background="@color/md_theme_background"
+    android:fillViewport="true">
 
     <LinearLayout
+        android:id="@+id/contentContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="@dimen/spacing_l">
+        android:padding="@dimen/spacing_l"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
         <!-- AppBar -->
         <com.google.android.material.appbar.MaterialToolbar
@@ -19,138 +23,290 @@
             android:title="@string/about_title"
             android:titleTextColor="@color/md_theme_onBackground" />
 
-        <!-- App Icon -->
-        <ImageView
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="@dimen/spacing_xl"
-            android:src="@mipmap/ic_launcher"
-            android:contentDescription="@string/app_name" />
-
-        <!-- App Name -->
-        <TextView
-            style="@style/Text.Flickr.Headline"
-            android:layout_width="wrap_content"
+        <!-- Hero Section -->
+        <LinearLayout
+            android:id="@+id/heroSection"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="@dimen/spacing_m"
-            android:text="@string/app_name"
-            android:textColor="@color/md_theme_onBackground"
-            android:textSize="24sp"
-            android:textStyle="bold" />
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="@dimen/spacing_xl">
 
-        <!-- Version -->
-        <TextView
-            style="@style/Text.Flickr.Caption"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="@dimen/spacing_s"
-            android:text="@string/about_version"
-            android:textColor="@color/md_text_secondary" />
+            <!-- App Icon with background -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/iconCard"
+                android:layout_width="140dp"
+                android:layout_height="140dp"
+                app:cardCornerRadius="70dp"
+                app:cardElevation="8dp"
+                app:cardBackgroundColor="@color/md_theme_primaryContainer">
+
+                <ImageView
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:layout_gravity="center"
+                    android:src="@mipmap/ic_launcher"
+                    android:contentDescription="@string/app_name" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- App Name -->
+            <TextView
+                android:id="@+id/appName"
+                style="@style/Text.Flickr.Headline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_l"
+                android:text="@string/app_name"
+                android:textColor="@color/md_theme_onBackground"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+
+            <!-- Version Badge -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/versionBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_m"
+                app:cardCornerRadius="20dp"
+                app:cardBackgroundColor="#E3F2FD">
+
+                <TextView
+                    style="@style/Text.Flickr.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="6dp"
+                    android:text="@string/about_version"
+                    android:textColor="#1976D2"
+                    android:textStyle="bold" />
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
 
         <!-- Description Card -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/descCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_xl"
-            app:cardCornerRadius="@dimen/card_corner_radius"
-            app:cardElevation="2dp">
+            android:layout_marginTop="@dimen/spacing_m"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp"
+            app:strokeWidth="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="@dimen/spacing_m">
+                android:orientation="horizontal"
+                android:padding="@dimen/spacing_l">
 
-                <TextView
-                    style="@style/Text.Flickr.Subtitle"
-                    android:layout_width="wrap_content"
+                <!-- Icon -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    app:cardCornerRadius="24dp"
+                    app:cardBackgroundColor="#FFF3E0">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="ℹ️"
+                        android:textSize="24sp" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="About"
-                    android:textColor="@color/md_theme_onBackground"
-                    android:textStyle="bold" />
+                    android:layout_weight="1"
+                    android:layout_marginStart="@dimen/spacing_m"
+                    android:orientation="vertical">
 
-                <TextView
-                    style="@style/Text.Flickr.Body"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_s"
-                    android:text="@string/about_description"
-                    android:textColor="@color/md_text_secondary" />
+                    <TextView
+                        style="@style/Text.Flickr.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="About"
+                        android:textColor="@color/md_theme_onBackground"
+                        android:textStyle="bold"
+                        android:textSize="18sp" />
 
+                    <TextView
+                        style="@style/Text.Flickr.Body"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_s"
+                        android:text="@string/about_description"
+                        android:textColor="@color/md_text_secondary"
+                        android:lineSpacingExtra="4dp" />
+                </LinearLayout>
             </LinearLayout>
-
         </com.google.android.material.card.MaterialCardView>
 
         <!-- Team Card -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/teamCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_m"
-            app:cardCornerRadius="@dimen/card_corner_radius"
-            app:cardElevation="2dp">
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp"
+            app:strokeWidth="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="@dimen/spacing_m">
+                android:orientation="horizontal"
+                android:padding="@dimen/spacing_l">
 
-                <TextView
-                    style="@style/Text.Flickr.Subtitle"
-                    android:layout_width="wrap_content"
+                <!-- Icon -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    app:cardCornerRadius="24dp"
+                    app:cardBackgroundColor="#E8F5E9">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="👥"
+                        android:textSize="24sp" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Development Team"
-                    android:textColor="@color/md_theme_onBackground"
-                    android:textStyle="bold" />
+                    android:layout_weight="1"
+                    android:layout_marginStart="@dimen/spacing_m"
+                    android:orientation="vertical">
 
-                <TextView
-                    style="@style/Text.Flickr.Body"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_s"
-                    android:text="@string/about_team"
-                    android:textColor="@color/md_text_secondary" />
+                    <TextView
+                        style="@style/Text.Flickr.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Development Team"
+                        android:textColor="@color/md_theme_onBackground"
+                        android:textStyle="bold"
+                        android:textSize="18sp" />
 
+                    <TextView
+                        style="@style/Text.Flickr.Body"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_s"
+                        android:text="@string/about_team"
+                        android:textColor="@color/md_text_secondary"
+                        android:lineSpacingExtra="4dp" />
+                </LinearLayout>
             </LinearLayout>
-
         </com.google.android.material.card.MaterialCardView>
 
         <!-- Features Card -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/featuresCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_m"
-            app:cardCornerRadius="@dimen/card_corner_radius"
-            app:cardElevation="2dp">
+            android:layout_marginBottom="@dimen/spacing_xl"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp"
+            app:strokeWidth="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="@dimen/spacing_m">
+                android:padding="@dimen/spacing_l">
 
-                <TextView
-                    style="@style/Text.Flickr.Subtitle"
-                    android:layout_width="wrap_content"
+                <!-- Header -->
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Features"
-                    android:textColor="@color/md_theme_onBackground"
-                    android:textStyle="bold" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="@dimen/spacing_m">
 
-                <TextView
-                    style="@style/Text.Flickr.Body"
-                    android:layout_width="wrap_content"
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        app:cardCornerRadius="24dp"
+                        app:cardBackgroundColor="#F3E5F5">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:text="✨"
+                            android:textSize="24sp" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <TextView
+                        style="@style/Text.Flickr.Subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/spacing_m"
+                        android:text="Features"
+                        android:textColor="@color/md_theme_onBackground"
+                        android:textStyle="bold"
+                        android:textSize="18sp" />
+                </LinearLayout>
+
+                <!-- Feature Items -->
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_s"
-                    android:text="• Search photos from Flickr\n• Explore recent photos\n• Save favorites\n• View photo details\n• Share photos"
-                    android:textColor="@color/md_text_secondary"
-                    android:lineSpacingExtra="4dp" />
+                    android:orientation="vertical">
 
+                    <TextView
+                        style="@style/Text.Flickr.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:drawableStart="@android:drawable/ic_menu_search"
+                        android:drawablePadding="12dp"
+                        android:text="Search photos from Flickr"
+                        android:textColor="@color/md_text_secondary"
+                        android:paddingVertical="8dp" />
+
+                    <TextView
+                        style="@style/Text.Flickr.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:drawableStart="@android:drawable/ic_menu_gallery"
+                        android:drawablePadding="12dp"
+                        android:text="Explore recent photos"
+                        android:textColor="@color/md_text_secondary"
+                        android:paddingVertical="8dp" />
+
+                    <TextView
+                        style="@style/Text.Flickr.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:drawableStart="@android:drawable/btn_star_big_on"
+                        android:drawablePadding="12dp"
+                        android:text="Save your favorites"
+                        android:textColor="@color/md_text_secondary"
+                        android:paddingVertical="8dp" />
+
+                    <TextView
+                        style="@style/Text.Flickr.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:drawableStart="@android:drawable/ic_menu_info_details"
+                        android:drawablePadding="12dp"
+                        android:text="View photo details"
+                        android:textColor="@color/md_text_secondary"
+                        android:paddingVertical="8dp" />
+
+                    <TextView
+                        style="@style/Text.Flickr.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:drawableStart="@android:drawable/ic_menu_share"
+                        android:drawablePadding="12dp"
+                        android:text="Share photos easily"
+                        android:textColor="@color/md_text_secondary"
+                        android:paddingVertical="8dp" />
+                </LinearLayout>
             </LinearLayout>
-
         </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>

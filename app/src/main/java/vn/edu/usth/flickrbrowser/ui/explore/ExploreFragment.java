@@ -13,6 +13,7 @@ import vn.edu.usth.flickrbrowser.core.api.FlickrRepo;
 import vn.edu.usth.flickrbrowser.core.data.FavoritesStore;
 import vn.edu.usth.flickrbrowser.core.model.PhotoItem;
 import vn.edu.usth.flickrbrowser.core.util.NetUtils;
+import vn.edu.usth.flickrbrowser.core.util.SnackbarHelper;
 import vn.edu.usth.flickrbrowser.ui.common.EndlessScrollListener;
 import vn.edu.usth.flickrbrowser.ui.state.PhotoState;
 
@@ -81,7 +82,8 @@ public class ExploreFragment extends Fragment {
         // Check network first
         if (!NetUtils.hasNetwork(requireContext())) {
             swipe.setRefreshing(false);
-            Toast.makeText(requireContext(), R.string.error_no_network, Toast.LENGTH_SHORT).show();
+            SnackbarHelper.show(requireView(), getString(R.string.error_no_network), 
+                SnackbarHelper.Type.ERROR);
             return;
         }
         
@@ -117,7 +119,8 @@ public class ExploreFragment extends Fragment {
         
         // Check network before loading more
         if (!NetUtils.hasNetwork(requireContext())) {
-            Toast.makeText(requireContext(), R.string.error_no_network, Toast.LENGTH_SHORT).show();
+            SnackbarHelper.show(requireView(), getString(R.string.error_no_network), 
+                SnackbarHelper.Type.ERROR);
             return;
         }
         
@@ -130,7 +133,9 @@ public class ExploreFragment extends Fragment {
                 isLoading = false;
                 if (items != null && !items.isEmpty()) {
                     adapter.addItems(items);
-                    Toast.makeText(requireContext(), "Loaded " + items.size() + " more photos", Toast.LENGTH_SHORT).show();
+                    SnackbarHelper.show(requireView(), 
+                        "Loaded " + items.size() + " more photos ✨", 
+                        SnackbarHelper.Type.SUCCESS);
                 }
             }
 
@@ -141,7 +146,7 @@ public class ExploreFragment extends Fragment {
                 String errorMsg = t.getMessage() != null && t.getMessage().contains("timeout") 
                     ? getString(R.string.error_timeout) 
                     : getString(R.string.error_load_failed);
-                Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_SHORT).show();
+                SnackbarHelper.show(requireView(), errorMsg, SnackbarHelper.Type.ERROR);
             }
         });
     }
@@ -172,7 +177,22 @@ public class ExploreFragment extends Fragment {
                 shimmerGrid.setVisibility(View.GONE);
             }
             if (rv != null) rv.setVisibility(View.GONE);
-            if (emptyRoot != null) emptyRoot.setVisibility(View.VISIBLE);
+            if (emptyRoot != null) {
+                emptyRoot.setVisibility(View.VISIBLE);
+                // Animate empty state
+                View emptyIcon = emptyRoot.findViewById(R.id.emptyIcon);
+                if (emptyIcon != null) {
+                    android.view.animation.Animation pulse = android.view.animation.AnimationUtils.loadAnimation(
+                        requireContext(), R.anim.pulse);
+                    emptyIcon.startAnimation(pulse);
+                }
+                // Fade in animation
+                emptyRoot.setAlpha(0f);
+                emptyRoot.animate()
+                    .alpha(1f)
+                    .setDuration(400)
+                    .start();
+            }
             if (emptyText != null) emptyText.setText(R.string.empty_default);
         }
         else if ( state instanceof PhotoState.Error){

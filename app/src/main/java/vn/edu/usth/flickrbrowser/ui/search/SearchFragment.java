@@ -175,7 +175,22 @@ public class SearchFragment extends Fragment {
             binding.shimmerGrid.getRoot().setVisibility(View.GONE);
 
             binding.rvPhotos.setVisibility(View.GONE);
-            if (binding.emptyView != null) binding.emptyView.getRoot().setVisibility(View.VISIBLE);
+            if (binding.emptyView != null) {
+                binding.emptyView.getRoot().setVisibility(View.VISIBLE);
+                // Animate empty state
+                View emptyIcon = binding.emptyView.getRoot().findViewById(R.id.emptyIcon);
+                if (emptyIcon != null) {
+                    android.view.animation.Animation pulse = android.view.animation.AnimationUtils.loadAnimation(
+                        requireContext(), R.anim.pulse);
+                    emptyIcon.startAnimation(pulse);
+                }
+                // Fade in animation
+                binding.emptyView.getRoot().setAlpha(0f);
+                binding.emptyView.getRoot().animate()
+                    .alpha(1f)
+                    .setDuration(400)
+                    .start();
+            }
         }
         else if (state instanceof PhotoState.Error) {
             binding.swipeRefresh.setRefreshing(false);
