@@ -10,17 +10,24 @@ import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.DecelerateInterpolator;
+import android.widget.RadioButton;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
 import vn.edu.usth.flickrbrowser.R;
+import vn.edu.usth.flickrbrowser.core.util.ThemeManager;
 
 public class AboutFragment extends Fragment {
 
     private View iconCard, appName, versionBadge;
-    private View descCard, teamCard, featuresCard;
+    private View descCard, teamCard, themeCard, featuresCard;
+    private TextView themeSubtitle;
+    private ThemeManager themeManager;
 
     public AboutFragment() {
         // Required empty public constructor
@@ -38,19 +45,37 @@ public class AboutFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         
+        // Initialize theme manager
+        themeManager = ThemeManager.getInstance(requireContext());
+        
         // Initialize views
         iconCard = view.findViewById(R.id.iconCard);
         appName = view.findViewById(R.id.appName);
         versionBadge = view.findViewById(R.id.versionBadge);
         descCard = view.findViewById(R.id.descCard);
         teamCard = view.findViewById(R.id.teamCard);
+        themeCard = view.findViewById(R.id.themeCard);
+        themeSubtitle = view.findViewById(R.id.themeSubtitle);
         featuresCard = view.findViewById(R.id.featuresCard);
+        
+        // Update theme subtitle
+        updateThemeSubtitle();
+        
+        // Setup theme selector
+        themeCard.setOnClickListener(v -> showThemeDialog());
         
         // Start animations
         animateEntrance();
         
         // Add click animations for cards
         setupCardAnimations();
+    }
+    
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Update theme subtitle when returning to fragment
+        updateThemeSubtitle();
     }
     
     private void animateEntrance() {
@@ -146,5 +171,65 @@ public class AboutFragment extends Fragment {
                 })
                 .start();
         });
+    }
+    
+    private void showThemeDialog() {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_theme_selector, null);
+        
+        View cardLight = dialogView.findViewById(R.id.card_light);
+        View cardDark = dialogView.findViewById(R.id.card_dark);
+        View cardSystem = dialogView.findViewById(R.id.card_system);
+        
+        RadioButton radioLight = dialogView.findViewById(R.id.radio_light);
+        RadioButton radioDark = dialogView.findViewById(R.id.radio_dark);
+        RadioButton radioSystem = dialogView.findViewById(R.id.radio_system);
+        
+        // Set current selection
+        int currentMode = themeManager.getThemeMode();
+        radioLight.setChecked(currentMode == ThemeManager.MODE_LIGHT);
+        radioDark.setChecked(currentMode == ThemeManager.MODE_DARK);
+        radioSystem.setChecked(currentMode == ThemeManager.MODE_SYSTEM);
+        
+        MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(requireContext())
+            .setView(dialogView);
+        
+        androidx.appcompat.app.AlertDialog alertDialog = dialog.create();
+        
+        // Setup click listeners
+        cardLight.setOnClickListener(v -> {
+            int oldMode = themeManager.getThemeMode();
+            themeManager.setThemeMode(ThemeManager.MODE_LIGHT);
+            alertDialog.dismiss();
+            if (oldMode != ThemeManager.MODE_LIGHT) {
+                requireActivity().recreate(); // Recreate activity to apply theme
+            }
+        });
+        
+        cardDark.setOnClickListener(v -> {
+            int oldMode = themeManager.getThemeMode();
+            themeManager.setThemeMode(ThemeManager.MODE_DARK);
+            alertDialog.dismiss();
+            if (oldMode != ThemeManager.MODE_DARK) {
+                requireActivity().recreate(); // Recreate activity to apply theme
+            }
+        });
+        
+        cardSystem.setOnClickListener(v -> {
+            int oldMode = themeManager.getThemeMode();
+            themeManager.setThemeMode(ThemeManager.MODE_SYSTEM);
+            alertDialog.dismiss();
+            if (oldMode != ThemeManager.MODE_SYSTEM) {
+                requireActivity().recreate(); // Recreate activity to apply theme
+            }
+        });
+        
+        alertDialog.show();
+    }
+    
+    private void updateThemeSubtitle() {
+        if (themeSubtitle != null && themeManager != null) {
+            int mode = themeManager.getThemeMode();
+            themeSubtitle.setText(themeManager.getThemeModeName(mode));
+        }
     }
 }

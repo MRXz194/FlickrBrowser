@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import vn.edu.usth.flickrbrowser.core.util.ThemeManager;
 import vn.edu.usth.flickrbrowser.ui.about.AboutFragment;
 import vn.edu.usth.flickrbrowser.ui.explore.ExploreFragment;
 import vn.edu.usth.flickrbrowser.ui.favorites.FavoritesFragment;
@@ -12,6 +13,7 @@ import vn.edu.usth.flickrbrowser.ui.search.SearchFragment;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String KEY_SELECTED_TAB = "selected_tab";
     private BottomNavigationView bottomNavigation;
     
     // Cache fragments to avoid recreation
@@ -20,21 +22,32 @@ public class MainActivity extends AppCompatActivity {
     private FavoritesFragment favoritesFragment;
     private AboutFragment aboutFragment;
     private Fragment currentFragment;
+    private int selectedTabId = R.id.navigation_home;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Apply saved theme before setContentView
+        ThemeManager.getInstance(this).applySavedTheme();
+        
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         bottomNavigation = findViewById(R.id.bottom_navigation);
         
-        // Initialize fragments once
-        if (savedInstanceState == null) {
-            searchFragment = new SearchFragment();
-            exploreFragment = new ExploreFragment();
-            favoritesFragment = new FavoritesFragment();
-            aboutFragment = new AboutFragment();
+        // Restore fragments from FragmentManager if they exist
+        if (savedInstanceState != null) {
+            selectedTabId = savedInstanceState.getInt(KEY_SELECTED_TAB, R.id.navigation_home);
+            searchFragment = (SearchFragment) getSupportFragmentManager().findFragmentByTag("search");
+            exploreFragment = (ExploreFragment) getSupportFragmentManager().findFragmentByTag("explore");
+            favoritesFragment = (FavoritesFragment) getSupportFragmentManager().findFragmentByTag("favorites");
+            aboutFragment = (AboutFragment) getSupportFragmentManager().findFragmentByTag("about");
         }
+        
+        // Initialize fragments if they don't exist
+        if (searchFragment == null) searchFragment = new SearchFragment();
+        if (exploreFragment == null) exploreFragment = new ExploreFragment();
+        if (favoritesFragment == null) favoritesFragment = new FavoritesFragment();
+        if (aboutFragment == null) aboutFragment = new AboutFragment();
         
         // Set up bottom navigation listener
         bottomNavigation.setOnItemSelectedListener(item -> {
@@ -54,15 +67,24 @@ public class MainActivity extends AppCompatActivity {
             if (selectedFragment != null && selectedFragment != currentFragment) {
                 showFragment(selectedFragment);
                 currentFragment = selectedFragment;
+                selectedTabId = itemId;
                 return true;
             }
             return false;
         });
 
-        // Load default fragment (Home/Search) on first launch
-        if (savedInstanceState == null) {
+        // Restore selected tab or load default
+        if (savedInstanceState != null) {
+            bottomNavigation.setSelectedItemId(selectedTabId);
+        } else {
             bottomNavigation.setSelectedItemId(R.id.navigation_home);
         }
+    }
+    
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(KEY_SELECTED_TAB, selectedTabId);
     }
     
     private void showFragment(Fragment fragment) {
@@ -88,13 +110,22 @@ public class MainActivity extends AppCompatActivity {
             transaction.hide(aboutFragment);
         }
         
-        // Show or add selected fragment
+        // Show or add selected fragment with tag
         if (fragment.isAdded()) {
             transaction.show(fragment);
         } else {
-            transaction.add(R.id.fragment_container, fragment);
+            String tag = getFragmentTag(fragment);
+            transaction.add(R.id.fragment_container, fragment, tag);
         }
         
         transaction.commit();
+    }
+    
+    private String getFragmentTag(Fragment fragment) {
+        if (fragment instanceof SearchFragment) return "search";
+        if (fragment instanceof ExploreFragment) return "explore";
+        if (fragment instanceof FavoritesFragment) return "favorites";
+        if (fragment instanceof AboutFragment) return "about";
+        return "unknown";
     }
 }

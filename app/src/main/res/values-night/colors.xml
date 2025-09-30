@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark Theme Colors -->
+    <color name="md_theme_background">#121212</color>
+    <color name="md_theme_surface">#1E1E1E</color>
+    <color name="md_theme_onBackground">#E1E1E1</color>
+    <color name="md_theme_onSurface">#E1E1E1</color>
+    
+    <color name="md_theme_primary">#BB86FC</color>
+    <color name="md_theme_primaryContainer">#3700B3</color>
+    <color name="md_theme_onPrimary">#000000</color>
+    
+    <color name="md_text_primary">#E1E1E1</color>
+    <color name="md_text_secondary">#B0B0B0</color>
+    
+    <!-- Card colors for dark theme -->
+    <color name="card_background">#1E1E1E</color>
+</resources>
