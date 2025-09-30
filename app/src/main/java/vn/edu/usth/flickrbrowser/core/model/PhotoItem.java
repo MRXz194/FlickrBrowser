@@ -35,6 +35,15 @@ public class PhotoItem implements Serializable {
     public String getTitle() { return title; }
     public String getOwner() { return owner; }
     public String getTags()  { return tags; }
+    
+    // Get Flickr page URL to open in browser
+    public String getFlickrPageUrl() {
+        if (notEmpty(id) && notEmpty(owner)) {
+            return "https://www.flickr.com/photos/" + owner + "/" + id;
+        }
+        // Fallback to image URL if we don't have owner info
+        return getFullUrl();
+    }
 
     private boolean okFlickr() {
         return notEmpty(server) && notEmpty(id) && notEmpty(secret);

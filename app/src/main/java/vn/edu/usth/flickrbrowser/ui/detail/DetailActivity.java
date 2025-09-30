@@ -138,8 +138,8 @@ public class DetailActivity extends AppCompatActivity {
                 return;
             }
             
-            // Validate URL
-            String url = photo.getFullUrl();
+            // Get Flickr page URL (not image URL)
+            String url = photo.getFlickrPageUrl();
             if (url == null || url.isEmpty()) {
                 Toast.makeText(this, R.string.error_empty_url, Toast.LENGTH_SHORT).show();
                 return;

@@ -27,8 +27,9 @@
             android:layout_height="wrap_content"
             android:hint="@string/search_hint"
             android:imeOptions="actionSearch"
-            android:inputType="text"
-            android:singleLine="true" />
+            android:inputType="text|textNoSuggestions"
+            android:maxLines="1"
+            android:textSize="16sp" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <TextView
