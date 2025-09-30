@@ -37,7 +37,14 @@ public class FavoritesFragment extends Fragment {
         final View shimmer = view.findViewById(R.id.shimmerGrid);
         final View emptyRoot = view.findViewById(R.id.emptyRoot);
 
-        rv.setLayoutManager(new GridLayoutManager(requireContext(), 2));
+        // Setup grid with spacing
+        int span = 2;
+        rv.setLayoutManager(new GridLayoutManager(requireContext(), span));
+        
+        // Add grid spacing decoration
+        int spacingPx = getResources().getDimensionPixelSize(R.dimen.spacing_m);
+        rv.addItemDecoration(new vn.edu.usth.flickrbrowser.ui.common.GridSpacingDecoration(span, spacingPx, true));
+        
         adapter = new PhotosAdapter(item -> {
             android.content.Intent i = new android.content.Intent(requireContext(), vn.edu.usth.flickrbrowser.ui.detail.DetailActivity.class);
             i.putExtra(vn.edu.usth.flickrbrowser.ui.detail.DetailActivity.EXTRA_PHOTO, item);
@@ -45,6 +52,7 @@ public class FavoritesFragment extends Fragment {
         });
         rv.setAdapter(adapter);
 
+        // Observe favorites changes
         FavoritesStore.get(requireContext()).live().observe(getViewLifecycleOwner(), list -> {
             List<PhotoItem> items = list;
             if (items == null || items.isEmpty()){

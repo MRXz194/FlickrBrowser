@@ -1,19 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
     android:background="@color/md_theme_background">
 
-    <ImageView
-        android:id="@+id/photoView"
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:adjustViewBounds="true"
-        android:contentDescription="@string/app_name"/>
+        android:layout_height="wrap_content"
+        android:elevation="0dp"
+        app:elevation="0dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:navigationIcon="@drawable/ic_back"
+            app:title="Photo Details"
+            android:background="@color/md_theme_background"
+            app:titleTextColor="@color/md_theme_onBackground" />
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp">
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="4dp"
+                android:layout_marginBottom="16dp">
+
+                <ImageView
+                    android:id="@+id/photoView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:adjustViewBounds="true"
+                    android:scaleType="centerCrop"
+                    android:maxHeight="500dp"
+                    android:transitionName="photo_transition"
+                    android:contentDescription="@string/app_name"/>
+            </com.google.android.material.card.MaterialCardView>
 
     <TextView
         android:id="@+id/photoTitle"
@@ -40,36 +76,110 @@
         app:singleLine="true"
         app:singleSelection="false" />
 
-    <LinearLayout
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/spacing_m"
-        android:gravity="end"
-        android:orientation="horizontal">
+        app:cardCornerRadius="12dp"
+        app:cardElevation="2dp"
+        app:contentPadding="8dp">
 
-        <ImageButton
-            android:id="@+id/btnFavorite"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:contentDescription="@string/cd_favorite"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/outline_favorite_24"/>
+            android:gravity="center"
+            android:orientation="horizontal">
 
-        <ImageButton
-            android:id="@+id/btnShare"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/cd_share"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/outline_bookmark_heart_24"/>
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="12dp">
 
-        <ImageButton
-            android:id="@+id/btnDownload"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/cd_download"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/baseline_image_not_supported_24"/>
-    </LinearLayout>
+                <ImageButton
+                    android:id="@+id/btnFavorite"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:padding="4dp"
+                    android:contentDescription="@string/cd_favorite"
+                    android:background="@android:color/transparent"
+                    android:src="@drawable/outline_favorite_24"/>
 
-</LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Favorite"
+                    android:textSize="12sp"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/md_text_secondary"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="12dp">
+
+                <ImageButton
+                    android:id="@+id/btnShare"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:padding="4dp"
+                    android:contentDescription="@string/cd_share"
+                    android:background="@android:color/transparent"
+                    android:src="@drawable/outline_bookmark_heart_24"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Share"
+                    android:textSize="12sp"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/md_text_secondary"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="12dp">
+
+                <ImageButton
+                    android:id="@+id/btnDownload"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:padding="4dp"
+                    android:contentDescription="@string/cd_download"
+                    android:background="@android:color/transparent"
+                    android:src="@drawable/ic_download"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Download"
+                    android:textSize="12sp"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/md_text_secondary"/>
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

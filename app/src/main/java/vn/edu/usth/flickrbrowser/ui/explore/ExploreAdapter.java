@@ -37,6 +37,14 @@ public class ExploreAdapter extends RecyclerView.Adapter<ExploreAdapter.VH> {
         notifyDataSetChanged();
     }
 
+    public void addItems(List<PhotoItem> newItems) {
+        if (newItems != null && !newItems.isEmpty()) {
+            int startPosition = data.size();
+            data.addAll(newItems);
+            notifyItemRangeInserted(startPosition, newItems.size());
+        }
+    }
+
     @NonNull
     @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -47,17 +55,49 @@ public class ExploreAdapter extends RecyclerView.Adapter<ExploreAdapter.VH> {
     @Override
     public void onBindViewHolder(@NonNull VH h, int pos) {
         PhotoItem p = data.get(pos);
-        Glide.with(h.img.getContext()).load(p.getThumbUrl()).into(h.img);
+        Glide.with(h.img.getContext())
+                .load(p.getThumbUrl())
+                .placeholder(R.drawable.bg_skeleton_rounded)
+                .centerCrop()
+                .into(h.img);
+        
         h.itemView.setOnClickListener(v -> {
             if (onItemClick != null) onItemClick.onClick(p);
         });
+        
         FavoritesStore store = FavoritesStore.get(h.itemView.getContext());
         boolean fav = store.isFavorite(p.id);
         h.btnFavorite.setImageResource(fav ? R.drawable.baseline_favorite_24 : R.drawable.outline_favorite_24);
+        // Set tint color based on favorite state
+        androidx.core.widget.ImageViewCompat.setImageTintList(h.btnFavorite, 
+            android.content.res.ColorStateList.valueOf(
+                fav ? 0xFFFF4081 : 0xFFFFFFFF)); // Pink when favorited, white when not
+        
+        // Remove old listeners
+        h.btnFavorite.setOnClickListener(null);
+        
         h.btnFavorite.setOnClickListener(v -> {
-            store.toggle(p);
-            boolean nowFav = store.isFavorite(p.id);
+            // Get current position to avoid stale data
+            int currentPos = h.getAdapterPosition();
+            if (currentPos == RecyclerView.NO_POSITION) return;
+            
+            PhotoItem currentItem = data.get(currentPos);
+            android.util.Log.d("ExploreAdapter", "Toggle favorite for: " + currentItem.id + " - " + currentItem.title);
+            
+            store.toggle(currentItem);
+            
+            // Update button immediately
+            boolean nowFav = store.isFavorite(currentItem.id);
             h.btnFavorite.setImageResource(nowFav ? R.drawable.baseline_favorite_24 : R.drawable.outline_favorite_24);
+            // Update tint color
+            androidx.core.widget.ImageViewCompat.setImageTintList(h.btnFavorite, 
+                android.content.res.ColorStateList.valueOf(
+                    nowFav ? 0xFFFF4081 : 0xFFFFFFFF)); // Pink when favorited, white when not
+            
+            // Animate the button
+            android.view.animation.Animation anim = android.view.animation.AnimationUtils.loadAnimation(
+                h.itemView.getContext(), R.anim.favorite_scale);
+            h.btnFavorite.startAnimation(anim);
         });
     }
 

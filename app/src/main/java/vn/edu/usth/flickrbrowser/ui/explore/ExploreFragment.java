@@ -11,6 +11,7 @@ import java.util.*;
 import vn.edu.usth.flickrbrowser.R;
 import vn.edu.usth.flickrbrowser.core.api.FlickrRepo;
 import vn.edu.usth.flickrbrowser.core.model.PhotoItem;
+import vn.edu.usth.flickrbrowser.ui.common.EndlessScrollListener;
 import vn.edu.usth.flickrbrowser.ui.state.PhotoState;
 
 public class ExploreFragment extends Fragment {
@@ -20,6 +21,10 @@ public class ExploreFragment extends Fragment {
     private ViewGroup shimmerGrid;
     private View emptyRoot;
     private TextView emptyText;
+    private int currentPage = 1;
+    private final int perPage = 20;
+    private boolean isLoading = false;
+    private EndlessScrollListener scrollListener;
     @Nullable @Override
     public View onCreateView(@NonNull LayoutInflater inf,@Nullable ViewGroup parent,@Nullable Bundle b){
         View v=inf.inflate(R.layout.fragment_explore,parent,false);
@@ -32,13 +37,27 @@ public class ExploreFragment extends Fragment {
             emptyText = emptyRoot.findViewById(R.id.emptyText);
         }
 
-        rv.setLayoutManager(new GridLayoutManager(requireContext(),2));
+        GridLayoutManager layoutManager = new GridLayoutManager(requireContext(), 2);
+        rv.setLayoutManager(layoutManager);
+        
         adapter=new ExploreAdapter(item -> {
             android.content.Intent i = new android.content.Intent(requireContext(), vn.edu.usth.flickrbrowser.ui.detail.DetailActivity.class);
             i.putExtra(vn.edu.usth.flickrbrowser.ui.detail.DetailActivity.EXTRA_PHOTO, item);
             startActivity(i);
         });
         rv.setAdapter(adapter);
+        
+        // Setup infinite scroll
+        scrollListener = new EndlessScrollListener(layoutManager) {
+            @Override
+            public void onLoadMore(int totalItemsCount) {
+                if (!isLoading) {
+                    loadMorePhotos();
+                }
+            }
+        };
+        rv.addOnScrollListener(scrollListener);
+        
         swipe.setOnRefreshListener(this::load);
         return v;
     }
@@ -47,18 +66,50 @@ public class ExploreFragment extends Fragment {
         super.onViewCreated(v,b); load();
     }
     private void load(){
+        currentPage = 1;
+        if (scrollListener != null) scrollListener.resetState();
+        
         swipe.setRefreshing(true);
+        isLoading = true;
         setState(new PhotoState.Loading());
-        FlickrRepo.getRecent(1,12,new FlickrRepo.CB(){
+        
+        FlickrRepo.getRecent(currentPage, perPage, new FlickrRepo.CB(){
             @Override
             public void ok(List<PhotoItem> items){
                 swipe.setRefreshing(false);
+                isLoading = false;
                 setState(new PhotoState.Success(items));
             }
             @Override
             public void err(Throwable t){
                 swipe.setRefreshing(false);
+                isLoading = false;
                 setState(new PhotoState.Error("Load error"));
+            }
+        });
+    }
+
+    private void loadMorePhotos() {
+        if (isLoading) return;
+        
+        isLoading = true;
+        currentPage++;
+        
+        FlickrRepo.getRecent(currentPage, perPage, new FlickrRepo.CB() {
+            @Override
+            public void ok(List<PhotoItem> items) {
+                isLoading = false;
+                if (items != null && !items.isEmpty()) {
+                    adapter.addItems(items);
+                    Toast.makeText(requireContext(), "Loaded " + items.size() + " more photos", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void err(Throwable t) {
+                isLoading = false;
+                currentPage--; // Revert page on error
+                Toast.makeText(requireContext(), "Failed to load more", Toast.LENGTH_SHORT).show();
             }
         });
     }

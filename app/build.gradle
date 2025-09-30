@@ -73,7 +73,4 @@ dependencies {
     // Lifecycle (LiveData)
     implementation 'androidx.lifecycle:lifecycle-livedata:2.8.4'
     implementation 'androidx.lifecycle:lifecycle-runtime:2.8.4'
-
-    // Detail screen dependencies
-    implementation 'com.squareup.picasso:picasso:2.71828'
 }

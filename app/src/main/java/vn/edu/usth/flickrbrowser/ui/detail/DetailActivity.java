@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.widget.ImageView;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
@@ -13,7 +14,9 @@ import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 
 import vn.edu.usth.flickrbrowser.R;
+import vn.edu.usth.flickrbrowser.core.data.FavoritesStore;
 import vn.edu.usth.flickrbrowser.core.model.PhotoItem;
+import vn.edu.usth.flickrbrowser.core.utils.ImageDownloader;
 
 public class DetailActivity extends AppCompatActivity {
 
@@ -23,11 +26,24 @@ public class DetailActivity extends AppCompatActivity {
     private TextView title, owner;
     private ChipGroup chipGroupTags;
     private ImageButton btnFavorite, btnShare, btnDownload;
+    private PhotoItem currentPhoto;
+    private FavoritesStore favoritesStore;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
+
+        // Setup toolbar
+        com.google.android.material.appbar.MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle("Photo Details");
+        }
+        
+        // Handle toolbar back button
+        toolbar.setNavigationOnClickListener(v -> onBackPressed());
 
         photoView = findViewById(R.id.photoView);
         title = findViewById(R.id.photoTitle);
@@ -37,8 +53,11 @@ public class DetailActivity extends AppCompatActivity {
         btnShare = findViewById(R.id.btnShare);
         btnDownload = findViewById(R.id.btnDownload);
 
+        favoritesStore = FavoritesStore.get(this);
+
         PhotoItem photo = (PhotoItem) getIntent().getSerializableExtra(EXTRA_PHOTO);
         if (photo != null) {
+            currentPhoto = photo;
             bindPhoto(photo);
         }
     }
@@ -65,8 +84,17 @@ public class DetailActivity extends AppCompatActivity {
             }
         }
 
+        // Update favorite button state
+        updateFavoriteButton();
+
         btnFavorite.setOnClickListener(v -> {
-            // TODO: save/remove from favorites
+            favoritesStore.toggle(currentPhoto);
+            updateFavoriteButton();
+            
+            // Show feedback to user
+            boolean isFav = favoritesStore.isFavorite(currentPhoto.id);
+            String message = isFav ? "Added to favorites ❤️" : "Removed from favorites";
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
         });
 
         btnShare.setOnClickListener(v -> {
@@ -77,8 +105,26 @@ public class DetailActivity extends AppCompatActivity {
         });
 
         btnDownload.setOnClickListener(v -> {
-            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(photo.getFullUrl()));
-            startActivity(browserIntent);
+            String fileName = ImageDownloader.generateFileName(photo.id, photo.title);
+            ImageDownloader.downloadImage(this, photo.getFullUrl(), fileName);
         });
+    }
+
+    private void updateFavoriteButton() {
+        if (currentPhoto != null && favoritesStore != null) {
+            boolean isFavorite = favoritesStore.isFavorite(currentPhoto.id);
+            btnFavorite.setImageResource(isFavorite ? 
+                R.drawable.baseline_favorite_24 : 
+                R.drawable.outline_favorite_24);
+            
+            // Update color: pink when favorited, default when not
+            androidx.core.widget.ImageViewCompat.setImageTintList(btnFavorite, 
+                android.content.res.ColorStateList.valueOf(
+                    isFavorite ? 0xFFFF4081 : 0xFF757575)); // Pink or gray
+            
+            btnFavorite.setContentDescription(isFavorite ? 
+                getString(R.string.cd_unfavorite) : 
+                getString(R.string.cd_favorite));
+        }
     }
 }

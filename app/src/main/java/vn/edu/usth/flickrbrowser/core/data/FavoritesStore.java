@@ -86,9 +86,15 @@ public class FavoritesStore {
                 o.put("tags", p.tags);
                 arr.put(o);
             }
-            sp.edit().putString(KEY, arr.toString()).apply();
-            live.postValue(new ArrayList<>(list));
-        }catch(Exception ignore){ }
+            sp.edit().putString(KEY, arr.toString()).commit(); // Use commit for immediate save
+            
+            // Update LiveData on main thread
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                live.setValue(new ArrayList<>(list));
+            });
+        }catch(Exception e){ 
+            android.util.Log.e("FavoritesStore", "Error persisting: " + e.getMessage());
+        }
     }
 
     private List<PhotoItem> load(){

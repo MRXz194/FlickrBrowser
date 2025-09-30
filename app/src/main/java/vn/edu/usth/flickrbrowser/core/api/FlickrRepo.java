@@ -144,12 +144,19 @@ public class FlickrRepo {
                     Log.d(TAG, "search code=" + r.code() + " body=" + body);
                     if (r.isSuccessful()) {
                         List<PhotoItem> out = parseToPhotos(body);
-                        MAIN.post(() -> cb.ok(out));
+                        if (out.isEmpty()) {
+                            Log.d(TAG, "search: No photos parsed, trying fallback");
+                            searchFallback(query, cb);
+                        } else {
+                            MAIN.post(() -> cb.ok(out));
+                        }
                     } else {
-                        MAIN.post(() -> cb.err(new RuntimeException("HTTP " + r.code())));
+                        Log.d(TAG, "search: API failed with code " + r.code() + ", trying fallback");
+                        searchFallback(query, cb);
                     }
                 } catch (Exception e) {
-                    MAIN.post(() -> cb.err(e));
+                    Log.d(TAG, "search: Exception, trying fallback: " + e);
+                    searchFallback(query, cb);
                 }
             }
 
@@ -158,11 +165,53 @@ public class FlickrRepo {
                 if (call.isCanceled()) {
                     Log.d(TAG, "search canceled");
                 } else {
-                    Log.d(TAG, "search fail: " + t);
+                    Log.d(TAG, "search fail: " + t + ", trying fallback");
+                    searchFallback(query, cb);
                 }
-                MAIN.post(() -> cb.err(t));
             }
         });
+    }
+
+    // Fallback: Search using Flickr public feed with tags
+    private static void searchFallback(String query, CB cb) {
+        new Thread(() -> {
+            try {
+                // Use tags parameter in Flickr public feed
+                String encodedQuery = java.net.URLEncoder.encode(query.trim(), "UTF-8");
+                String urlStr = "https://www.flickr.com/services/feeds/photos_public.gne?tags=" + encodedQuery + "&format=json&nojsoncallback=1";
+                
+                java.net.URL url = new java.net.URL(urlStr);
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
+                
+                int code = conn.getResponseCode();
+                Log.d(TAG, "Search Fallback API code=" + code + " query=" + query);
+                
+                if (code == 200) {
+                    java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(conn.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    reader.close();
+                    
+                    String body = response.toString();
+                    Log.d(TAG, "Search Fallback body length=" + body.length());
+                    List<PhotoItem> out = parseToPhotos(body);
+                    MAIN.post(() -> cb.ok(out));
+                } else {
+                    MAIN.post(() -> cb.err(new RuntimeException("Fallback HTTP " + code)));
+                }
+                conn.disconnect();
+            } catch (Exception e) {
+                Log.d(TAG, "Search Fallback error: " + e);
+                MAIN.post(() -> cb.err(e));
+            }
+        }).start();
     }
 
     // ---- Parser JSON -> List<PhotoItem> ----
@@ -196,12 +245,32 @@ public class FlickrRepo {
                     JSONObject o = items.optJSONObject(i);
                     if (o == null) continue;
                     PhotoItem p = new PhotoItem();
+                    
+                    // Generate unique ID from link or use hash
+                    String link = o.optString("link", "");
+                    if (!link.isEmpty()) {
+                        // Extract photo ID from Flickr link
+                        String[] parts = link.split("/");
+                        for (String part : parts) {
+                            if (part.matches("\\d+")) {
+                                p.id = "fallback_" + part;
+                                break;
+                            }
+                        }
+                    }
+                    // If still no ID, generate from URL hash
+                    if (p.id == null || p.id.isEmpty()) {
+                        JSONObject media = o.optJSONObject("media");
+                        String url = media != null ? media.optString("m", "") : "";
+                        p.id = "fallback_" + Math.abs(url.hashCode());
+                    }
+                    
                     p.title = o.optString("title", "");
                     p.owner = o.optString("author", "");
                     JSONObject media = o.optJSONObject("media");
                     String url = media != null ? media.optString("m", "") : "";
                     p.thumbUrl = url;
-                    p.fullUrl  = url;
+                    p.fullUrl  = url.replace("_m.jpg", "_b.jpg"); // Get larger version
                     out.add(p);
                 }
             }

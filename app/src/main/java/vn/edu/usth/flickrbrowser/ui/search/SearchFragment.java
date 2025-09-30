@@ -1,6 +1,10 @@
 package vn.edu.usth.flickrbrowser.ui.search;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +22,7 @@ import vn.edu.usth.flickrbrowser.R;
 import vn.edu.usth.flickrbrowser.core.api.FlickrRepo;
 import vn.edu.usth.flickrbrowser.core.model.PhotoItem;
 import vn.edu.usth.flickrbrowser.databinding.FragmentSearchBinding;
+import vn.edu.usth.flickrbrowser.ui.common.EndlessScrollListener;
 import vn.edu.usth.flickrbrowser.ui.common.GridSpacingDecoration;
 import vn.edu.usth.flickrbrowser.ui.search.PhotosAdapter;
 import vn.edu.usth.flickrbrowser.ui.state.PhotoState;
@@ -25,8 +30,15 @@ import vn.edu.usth.flickrbrowser.ui.state.PhotoState;
 public class SearchFragment extends Fragment {
     private FragmentSearchBinding binding;
     private PhotosAdapter adapter;
-    private int page = 1;
+    private int currentPage = 1;
     private final int perPage = 24;
+    private String currentQuery = "";
+    private boolean isLoading = false;
+    private EndlessScrollListener scrollListener;
+    
+    // Debouncing for auto-search
+    private Handler searchHandler = new Handler(Looper.getMainLooper());
+    private Runnable searchRunnable;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -50,11 +62,23 @@ public class SearchFragment extends Fragment {
 
         // 2) RecyclerView grid 2 cột
         int span = 2;
-        binding.rvPhotos.setLayoutManager(new GridLayoutManager(getContext(), span));
+        GridLayoutManager layoutManager = new GridLayoutManager(getContext(), span);
+        binding.rvPhotos.setLayoutManager(layoutManager);
 
         // 3) Spacing theo token
         int spacingPx = getResources().getDimensionPixelSize(R.dimen.spacing_m);
         binding.rvPhotos.addItemDecoration(new GridSpacingDecoration(span, spacingPx, true));
+
+        // 4) Setup infinite scroll
+        scrollListener = new EndlessScrollListener(layoutManager) {
+            @Override
+            public void onLoadMore(int totalItemsCount) {
+                if (!isLoading && !currentQuery.isEmpty()) {
+                    loadMorePhotos();
+                }
+            }
+        };
+        binding.rvPhotos.addOnScrollListener(scrollListener);
 
         // Search action on keyboard
         binding.edtQuery.setOnEditorActionListener((v, actionId, ev) -> {
@@ -63,6 +87,38 @@ public class SearchFragment extends Fragment {
                 return true;
             }
             return false;
+        });
+
+        // Auto-search as you type (with 800ms delay)
+        binding.edtQuery.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Cancel previous search
+                if (searchRunnable != null) {
+                    searchHandler.removeCallbacks(searchRunnable);
+                }
+                
+                // Schedule new search after 800ms delay
+                String query = s.toString().trim();
+                searchRunnable = () -> {
+                    if (query.length() >= 2) { // Only search if 2+ characters
+                        doSearch(query);
+                    } else if (query.isEmpty()) {
+                        // Clear results when query is empty
+                        adapter.submitList(null);
+                        setState(new PhotoState.Empty());
+                    }
+                };
+                searchHandler.postDelayed(searchRunnable, 800);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
         });
 
         // Initial empty state
@@ -112,12 +168,20 @@ public class SearchFragment extends Fragment {
     }
 
     private void doSearch(String query) {
+        // Reset for new search
+        currentQuery = query;
+        currentPage = 1;
+        if (scrollListener != null) scrollListener.resetState();
+        
         // Cancel any in-flight before starting
         FlickrRepo.cancelSearch();
+        isLoading = true;
         setState(new PhotoState.Loading());
-        FlickrRepo.search(query, page, perPage, new FlickrRepo.CB() {
+        
+        FlickrRepo.search(query, currentPage, perPage, new FlickrRepo.CB() {
             @Override
             public void ok(List<PhotoItem> items) {
+                isLoading = false;
                 if (items == null || items.isEmpty()) {
                     setState(new PhotoState.Empty());
                 } else {
@@ -127,7 +191,33 @@ public class SearchFragment extends Fragment {
 
             @Override
             public void err(Throwable e) {
+                isLoading = false;
                 setState(new PhotoState.Error("Search failed"));
+            }
+        });
+    }
+
+    private void loadMorePhotos() {
+        if (isLoading) return;
+        
+        isLoading = true;
+        currentPage++;
+        
+        FlickrRepo.search(currentQuery, currentPage, perPage, new FlickrRepo.CB() {
+            @Override
+            public void ok(List<PhotoItem> items) {
+                isLoading = false;
+                if (items != null && !items.isEmpty()) {
+                    adapter.addItems(items);
+                    Toast.makeText(requireContext(), "Loaded " + items.size() + " more photos", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void err(Throwable e) {
+                isLoading = false;
+                currentPage--; // Revert page on error
+                Toast.makeText(requireContext(), "Failed to load more", Toast.LENGTH_SHORT).show();
             }
         });
     }
