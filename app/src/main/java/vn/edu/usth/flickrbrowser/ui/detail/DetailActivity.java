@@ -56,12 +56,24 @@ public class DetailActivity extends AppCompatActivity {
         btnDownload = findViewById(R.id.btnDownload);
 
         favoritesStore = FavoritesStore.get(this);
+        
+        // Observe favorites changes to update button state
+        favoritesStore.live().observe(this, favoritesList -> {
+            updateFavoriteButton();
+        });
 
         PhotoItem photo = (PhotoItem) getIntent().getSerializableExtra(EXTRA_PHOTO);
         if (photo != null) {
             currentPhoto = photo;
             bindPhoto(photo);
         }
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Update favorite button when returning to this screen
+        updateFavoriteButton();
     }
 
     private void bindPhoto(PhotoItem photo) {

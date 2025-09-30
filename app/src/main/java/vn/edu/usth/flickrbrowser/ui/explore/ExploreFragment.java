@@ -10,6 +10,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import java.util.*;
 import vn.edu.usth.flickrbrowser.R;
 import vn.edu.usth.flickrbrowser.core.api.FlickrRepo;
+import vn.edu.usth.flickrbrowser.core.data.FavoritesStore;
 import vn.edu.usth.flickrbrowser.core.model.PhotoItem;
 import vn.edu.usth.flickrbrowser.core.util.NetUtils;
 import vn.edu.usth.flickrbrowser.ui.common.EndlessScrollListener;
@@ -64,7 +65,17 @@ public class ExploreFragment extends Fragment {
     }
     @Override
     public void onViewCreated(@NonNull View v,@Nullable Bundle b){
-        super.onViewCreated(v,b); load();
+        super.onViewCreated(v,b); 
+        
+        // Observe favorites changes to update UI
+        FavoritesStore.get(requireContext()).live().observe(getViewLifecycleOwner(), favoritesList -> {
+            // Notify adapter to refresh favorite states
+            if (adapter != null) {
+                adapter.notifyDataSetChanged();
+            }
+        });
+        
+        load();
     }
     private void load(){
         // Check network first

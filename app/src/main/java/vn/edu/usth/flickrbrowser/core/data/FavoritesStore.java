@@ -29,10 +29,12 @@ public class FavoritesStore {
 
     private final SharedPreferences sp;
     private final MutableLiveData<List<PhotoItem>> live = new MutableLiveData<>(new ArrayList<>());
+    private List<PhotoItem> cache = new ArrayList<>(); // Internal cache for immediate access
 
     private FavoritesStore(Context appCtx){
         sp = appCtx.getSharedPreferences(PREF, Context.MODE_PRIVATE);
-        live.postValue(load());
+        cache = load();
+        live.postValue(new ArrayList<>(cache));
     }
 
     public LiveData<List<PhotoItem>> live(){ return live; }
@@ -44,7 +46,8 @@ public class FavoritesStore {
 
     public synchronized boolean isFavorite(String id){
         if (id == null) return false;
-        for (PhotoItem p : getAll()){
+        // Check cache directly for immediate result
+        for (PhotoItem p : cache){
             if (id.equals(p.id)) return true;
         }
         return false;
@@ -56,19 +59,22 @@ public class FavoritesStore {
     }
 
     public synchronized void add(PhotoItem p){
-        List<PhotoItem> cur = getAll();
-        for (PhotoItem it: cur){ if (p.id != null && p.id.equals(it.id)) return; }
-        cur.add(p);
-        persist(cur);
+        // Check cache first
+        for (PhotoItem it: cache){ 
+            if (p.id != null && p.id.equals(it.id)) return; // Already exists
+        }
+        cache.add(p);
+        persist(new ArrayList<>(cache));
     }
 
     public synchronized void removeById(String id){
-        List<PhotoItem> cur = getAll();
-        Iterator<PhotoItem> it = cur.iterator();
+        Iterator<PhotoItem> it = cache.iterator();
         while (it.hasNext()){
-            if (id != null && id.equals(it.next().id)) it.remove();
+            if (id != null && id.equals(it.next().id)) {
+                it.remove();
+            }
         }
-        persist(cur);
+        persist(new ArrayList<>(cache));
     }
 
     private void persist(List<PhotoItem> list){
@@ -89,10 +95,14 @@ public class FavoritesStore {
             }
             sp.edit().putString(KEY, arr.toString()).commit(); // Use commit for immediate save
             
-            // Update LiveData on main thread
-            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+            // Update LiveData IMMEDIATELY (sync) on main thread or current thread
+            if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+                // Already on main thread, update directly
                 live.setValue(new ArrayList<>(list));
-            });
+            } else {
+                // Post to main thread and update immediately in current value too
+                live.postValue(new ArrayList<>(list));
+            }
         }catch(Exception e){ 
             android.util.Log.e("FavoritesStore", "Error persisting: " + e.getMessage());
         }
