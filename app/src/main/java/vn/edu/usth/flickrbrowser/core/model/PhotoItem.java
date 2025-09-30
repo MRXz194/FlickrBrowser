@@ -11,6 +11,7 @@ public class PhotoItem implements Serializable {
     public String thumbUrl = "";
     public String fullUrl = "";
     public String tags = ""; // optional, may be empty
+    public String flickrPageLink = ""; // Direct link to Flickr page (from fallback API)
 
     public String getThumbUrl() {
         if (thumbUrl != null && !thumbUrl.isEmpty()) {
@@ -38,10 +39,15 @@ public class PhotoItem implements Serializable {
     
     // Get Flickr page URL to open in browser
     public String getFlickrPageUrl() {
-        if (notEmpty(id) && notEmpty(owner)) {
+        // Priority 1: Use direct link if available (from fallback API)
+        if (notEmpty(flickrPageLink)) {
+            return flickrPageLink;
+        }
+        // Priority 2: Build URL from id/owner (from official API)
+        if (notEmpty(id) && notEmpty(owner) && !id.startsWith("fallback_")) {
             return "https://www.flickr.com/photos/" + owner + "/" + id;
         }
-        // Fallback to image URL if we don't have owner info
+        // Priority 3: Fallback to image URL
         return getFullUrl();
     }
 

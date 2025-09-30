@@ -246,8 +246,11 @@ public class FlickrRepo {
                     if (o == null) continue;
                     PhotoItem p = new PhotoItem();
                     
-                    // Generate unique ID from link or use hash
+                    // Save the direct Flickr page link
                     String link = o.optString("link", "");
+                    p.flickrPageLink = link; // Save original link for opening in browser
+                    
+                    // Generate unique ID from link or use hash
                     if (!link.isEmpty()) {
                         // Extract photo ID from Flickr link
                         String[] parts = link.split("/");

@@ -84,6 +84,7 @@ public class FavoritesStore {
                 o.put("thumbUrl", p.thumbUrl);
                 o.put("fullUrl", p.fullUrl);
                 o.put("tags", p.tags);
+                o.put("flickrPageLink", p.flickrPageLink);
                 arr.put(o);
             }
             sp.edit().putString(KEY, arr.toString()).commit(); // Use commit for immediate save
@@ -115,6 +116,7 @@ public class FavoritesStore {
                 p.thumbUrl = o.optString("thumbUrl", "");
                 p.fullUrl = o.optString("fullUrl", "");
                 p.tags = o.optString("tags", "");
+                p.flickrPageLink = o.optString("flickrPageLink", "");
                 out.add(p);
             }
         }catch(Exception ignore){ }
