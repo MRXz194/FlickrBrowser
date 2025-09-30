@@ -18,7 +18,23 @@
     <string name="cd_favorite">Add to favorites</string>
     <string name="cd_unfavorite">Remove from favorites</string>
 
+    <!-- Detail actions -->
+    <string name="cd_share">Share</string>
+    <string name="cd_download">Download</string>
+
     <!-- Search/Explore screen -->
     <string name="no_photos_found">No photos found</string>
     <string name="search_no_photos_text">No photos found</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_explore">Explore</string>
+    <string name="nav_favorites">Favorites</string>
+    <string name="nav_about">About</string>
+
+    <!-- About screen -->
+    <string name="about_title">About FlickrBrowser</string>
+    <string name="about_version">Version 1.0</string>
+    <string name="about_description">A beautiful Flickr photo browser app built with Material Design</string>
+    <string name="about_team">Developed by USTH Team</string>
 </resources>

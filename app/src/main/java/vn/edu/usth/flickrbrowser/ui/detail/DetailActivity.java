@@ -3,14 +3,14 @@ package vn.edu.usth.flickrbrowser.ui.detail;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.widget.ImageView;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.github.chrisbanes.photoview.PhotoView;
+import com.bumptech.glide.Glide;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
-import com.squareup.picasso.Picasso;
 
 import vn.edu.usth.flickrbrowser.R;
 import vn.edu.usth.flickrbrowser.core.model.PhotoItem;
@@ -19,7 +19,7 @@ public class DetailActivity extends AppCompatActivity {
 
     public static final String EXTRA_PHOTO = "extra_photo";
 
-    private PhotoView photoView;
+    private ImageView photoView;
     private TextView title, owner;
     private ChipGroup chipGroupTags;
     private ImageButton btnFavorite, btnShare, btnDownload;
@@ -45,9 +45,9 @@ public class DetailActivity extends AppCompatActivity {
 
     private void bindPhoto(PhotoItem photo) {
         // Load ảnh full size
-        Picasso.get()
-                .load(photo.getUrl_m())
-                .placeholder(R.drawable.placeholder)
+        Glide.with(this)
+                .load(photo.getFullUrl())
+                .placeholder(R.drawable.placeholder_grey)
                 .into(photoView);
 
         title.setText(photo.getTitle());
@@ -71,13 +71,13 @@ public class DetailActivity extends AppCompatActivity {
 
         btnShare.setOnClickListener(v -> {
             Intent shareIntent = new Intent(Intent.ACTION_SEND);
-            shareIntent.putExtra(Intent.EXTRA_TEXT, photo.getUrl_m());
+            shareIntent.putExtra(Intent.EXTRA_TEXT, photo.getFullUrl());
             shareIntent.setType("text/plain");
             startActivity(Intent.createChooser(shareIntent, "Share via"));
         });
 
         btnDownload.setOnClickListener(v -> {
-            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(photo.getUrl_m()));
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(photo.getFullUrl()));
             startActivity(browserIntent);
         });
     }

@@ -63,21 +63,66 @@ public class FlickrRepo {
                     Log.d(TAG, "getRecent code=" + r.code() + " body=" + body);
                     if (r.isSuccessful()) {
                         List<PhotoItem> out = parseToPhotos(body);
-                        MAIN.post(() -> cb.ok(out));
+                        if (out.isEmpty()) {
+                            Log.d(TAG, "getRecent: No photos parsed, trying fallback");
+                            getRecentFallback(cb);
+                        } else {
+                            MAIN.post(() -> cb.ok(out));
+                        }
                     } else {
-                        MAIN.post(() -> cb.err(new RuntimeException("HTTP " + r.code())));
+                        Log.d(TAG, "getRecent: API failed with code " + r.code() + ", trying fallback");
+                        getRecentFallback(cb);
                     }
                 } catch (Exception e) {
-                    MAIN.post(() -> cb.err(e));
+                    Log.d(TAG, "getRecent: Exception, trying fallback: " + e);
+                    getRecentFallback(cb);
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Log.d(TAG, "getRecent fail: " + t);
-                MAIN.post(() -> cb.err(t));
+                Log.d(TAG, "getRecent fail: " + t + ", trying fallback");
+                getRecentFallback(cb);
             }
         });
+    }
+
+    // Fallback: Use Flickr public feed (no API key needed)
+    private static void getRecentFallback(CB cb) {
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL("https://www.flickr.com/services/feeds/photos_public.gne?format=json&nojsoncallback=1");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
+                
+                int code = conn.getResponseCode();
+                Log.d(TAG, "Fallback API code=" + code);
+                
+                if (code == 200) {
+                    java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(conn.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    reader.close();
+                    
+                    String body = response.toString();
+                    Log.d(TAG, "Fallback body length=" + body.length());
+                    List<PhotoItem> out = parseToPhotos(body);
+                    MAIN.post(() -> cb.ok(out));
+                } else {
+                    MAIN.post(() -> cb.err(new RuntimeException("Fallback HTTP " + code)));
+                }
+                conn.disconnect();
+            } catch (Exception e) {
+                Log.d(TAG, "Fallback error: " + e);
+                MAIN.post(() -> cb.err(e));
+            }
+        }).start();
     }
 
     // ---- search ----

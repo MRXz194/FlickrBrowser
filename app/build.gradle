@@ -2,10 +2,15 @@ plugins {
     alias(libs.plugins.android.application)
 }
 def localProps = new Properties()
-localProps.load(rootProject.file("local.properties").newDataInputStream())
-def rk = localProps.getProperty("RAPIDAPI_KEY", "")
-def rh = localProps.getProperty("RAPIDAPI_HOST", "")
-def rb = localProps.getProperty("RAPIDAPI_BASE_URL", "")
+def localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) {
+    localProps.load(localPropsFile.newDataInputStream())
+}
+// Prefer local.properties (not committed). Fallback to gradle.properties if provided.
+// Use placeholder values if not configured to allow build to succeed
+def rk = localProps.getProperty("RAPIDAPI_KEY", project.findProperty("RAPIDAPI_KEY") ?: "YOUR_API_KEY_HERE")
+def rh = localProps.getProperty("RAPIDAPI_HOST", project.findProperty("RAPIDAPI_HOST") ?: "flickr-api2.p.rapidapi.com")
+def rb = localProps.getProperty("RAPIDAPI_BASE_URL", project.findProperty("RAPIDAPI_BASE_URL") ?: "https://flickr-api2.p.rapidapi.com/")
 android {
     namespace 'vn.edu.usth.flickrbrowser'
     compileSdk 36
@@ -17,9 +22,10 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField "String", "RAPIDAPI_BASE_URL", "\"https://flickrdidenkoradionv1.p.rapidapi.com/\""
-        buildConfigField "String", "RAPIDAPI_HOST",     "\"flickrdidenkoradionv1.p.rapidapi.com\""
-        buildConfigField "String", "RAPIDAPI_KEY",      "\"ab1f7311e6msh706bac8eb22ab42p15630fjsnce0caef8bd6f\""
+        // Provide BuildConfig fields from properties (avoid hardcoding secrets in VCS)
+        buildConfigField "String", "RAPIDAPI_BASE_URL", "\"${rb}\""
+        buildConfigField "String", "RAPIDAPI_HOST",     "\"${rh}\""
+        buildConfigField "String", "RAPIDAPI_KEY",      "\"${rk}\""
     }
 
     buildTypes {
@@ -60,7 +66,14 @@ dependencies {
 
     implementation 'androidx.recyclerview:recyclerview:1.3.2'    // RecyclerView grid
     implementation 'com.google.android.material:material:1.12.0' // AppBar, TextInput
-    implementation 'androidx.constraintLayout:constraintLayout:2.1.4' // ConstraintLayout
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4' // ConstraintLayout
     implementation 'com.github.bumptech.glide:glide:4.16.0'      // Load ảnh
     annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
+
+    // Lifecycle (LiveData)
+    implementation 'androidx.lifecycle:lifecycle-livedata:2.8.4'
+    implementation 'androidx.lifecycle:lifecycle-runtime:2.8.4'
+
+    // Detail screen dependencies
+    implementation 'com.squareup.picasso:picasso:2.71828'
 }

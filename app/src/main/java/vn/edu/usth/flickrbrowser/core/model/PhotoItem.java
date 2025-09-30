@@ -1,6 +1,8 @@
 package vn.edu.usth.flickrbrowser.core.model;
 
-public class PhotoItem {
+import java.io.Serializable;
+
+public class PhotoItem implements Serializable {
     public String id = "";
     public String server = "";
     public String secret = "";
@@ -8,6 +10,7 @@ public class PhotoItem {
     public String owner = "";
     public String thumbUrl = "";
     public String fullUrl = "";
+    public String tags = ""; // optional, may be empty
 
     public String getThumbUrl() {
         if (thumbUrl != null && !thumbUrl.isEmpty()) {
@@ -28,6 +31,10 @@ public class PhotoItem {
         }
         return getThumbUrl();
     }
+
+    public String getTitle() { return title; }
+    public String getOwner() { return owner; }
+    public String getTags()  { return tags; }
 
     private boolean okFlickr() {
         return notEmpty(server) && notEmpty(id) && notEmpty(secret);
