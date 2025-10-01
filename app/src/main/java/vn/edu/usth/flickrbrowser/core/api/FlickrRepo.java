@@ -172,13 +172,44 @@ public class FlickrRepo {
         });
     }
 
-    // Fallback: Search using Flickr public feed with tags
+    // Cache for fallback search results to avoid duplicates
+    private static Map<String, List<PhotoItem>> fallbackCache = new HashMap<>();
+    private static Map<String, Integer> fallbackPageIndex = new HashMap<>();
+    
+    // Fallback: Search using multiple Flickr public feeds with variety
     private static void searchFallback(String query, CB cb) {
         new Thread(() -> {
             try {
-                // Use tags parameter in Flickr public feed
-                String encodedQuery = java.net.URLEncoder.encode(query.trim(), "UTF-8");
-                String urlStr = "https://www.flickr.com/services/feeds/photos_public.gne?tags=" + encodedQuery + "&format=json&nojsoncallback=1";
+                String cacheKey = query.toLowerCase().trim();
+                
+                // Get or initialize page index for this query
+                int pageIndex = fallbackPageIndex.getOrDefault(cacheKey, 0);
+                
+                // Multiple strategies to get variety:
+                // 1. tagmode=any (match any tag)
+                // 2. tagmode=all (match all tags)
+                // 3. Different tag combinations
+                String[] tagModes = {"any", "all"};
+                String tagMode = tagModes[pageIndex % tagModes.length];
+                
+                // Split query into tags for better results
+                String[] queryParts = query.trim().split("\\s+");
+                String tags = String.join(",", queryParts);
+                String encodedTags = java.net.URLEncoder.encode(tags, "UTF-8");
+                
+                // Build URL with variety parameters
+                StringBuilder urlBuilder = new StringBuilder("https://www.flickr.com/services/feeds/photos_public.gne?");
+                urlBuilder.append("tags=").append(encodedTags);
+                urlBuilder.append("&tagmode=").append(tagMode);
+                urlBuilder.append("&format=json&nojsoncallback=1");
+                
+                // Add language parameter for variety (rotate through languages)
+                String[] langs = {"en-us", "es-us", "fr-fr", "de-de", "it-it", "pt-br", "ja-jp", "ko-kr"};
+                String lang = langs[pageIndex % langs.length];
+                urlBuilder.append("&lang=").append(lang);
+                
+                String urlStr = urlBuilder.toString();
+                Log.d(TAG, "Search Fallback URL: " + urlStr + " (page index: " + pageIndex + ")");
                 
                 java.net.URL url = new java.net.URL(urlStr);
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
@@ -201,8 +232,37 @@ public class FlickrRepo {
                     
                     String body = response.toString();
                     Log.d(TAG, "Search Fallback body length=" + body.length());
-                    List<PhotoItem> out = parseToPhotos(body);
-                    MAIN.post(() -> cb.ok(out));
+                    List<PhotoItem> newPhotos = parseToPhotos(body);
+                    
+                    // Get cached photos for this query
+                    List<PhotoItem> cachedPhotos = fallbackCache.getOrDefault(cacheKey, new ArrayList<>());
+                    
+                    // Filter out duplicates
+                    List<PhotoItem> uniquePhotos = new ArrayList<>();
+                    for (PhotoItem photo : newPhotos) {
+                        boolean isDuplicate = false;
+                        for (PhotoItem cached : cachedPhotos) {
+                            if (photo.id.equals(cached.id) || photo.fullUrl.equals(cached.fullUrl)) {
+                                isDuplicate = true;
+                                break;
+                            }
+                        }
+                        if (!isDuplicate) {
+                            uniquePhotos.add(photo);
+                        }
+                    }
+                    
+                    // Add to cache
+                    cachedPhotos.addAll(uniquePhotos);
+                    fallbackCache.put(cacheKey, cachedPhotos);
+                    
+                    // Increment page index for next load
+                    fallbackPageIndex.put(cacheKey, pageIndex + 1);
+                    
+                    Log.d(TAG, "Search Fallback: " + uniquePhotos.size() + " unique photos (total cached: " + cachedPhotos.size() + ")");
+                    
+                    List<PhotoItem> finalPhotos = uniquePhotos;
+                    MAIN.post(() -> cb.ok(finalPhotos));
                 } else {
                     MAIN.post(() -> cb.err(new RuntimeException("Fallback HTTP " + code)));
                 }
@@ -212,6 +272,13 @@ public class FlickrRepo {
                 MAIN.post(() -> cb.err(e));
             }
         }).start();
+    }
+    
+    // Clear cache for a specific query (call when starting new search)
+    public static void clearSearchCache(String query) {
+        String cacheKey = query.toLowerCase().trim();
+        fallbackCache.remove(cacheKey);
+        fallbackPageIndex.remove(cacheKey);
     }
 
     // ---- Parser JSON -> List<PhotoItem> ----

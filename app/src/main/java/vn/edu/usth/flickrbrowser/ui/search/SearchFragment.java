@@ -221,6 +221,9 @@ public class SearchFragment extends Fragment {
         currentPage = 1;
         if (scrollListener != null) scrollListener.resetState();
         
+        // Clear fallback cache for this query
+        FlickrRepo.clearSearchCache(query);
+        
         // Cancel any in-flight before starting
         FlickrRepo.cancelSearch();
         isLoading = true;
