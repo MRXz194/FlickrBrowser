@@ -73,4 +73,10 @@ dependencies {
     // Lifecycle (LiveData)
     implementation 'androidx.lifecycle:lifecycle-livedata:2.8.4'
     implementation 'androidx.lifecycle:lifecycle-runtime:2.8.4'
+    
+    // ViewPager2 for gallery swipe
+    implementation 'androidx.viewpager2:viewpager2:1.0.0'
+    
+    // PhotoView for zoom and pan
+    implementation 'com.github.chrisbanes:PhotoView:2.3.0'
 }

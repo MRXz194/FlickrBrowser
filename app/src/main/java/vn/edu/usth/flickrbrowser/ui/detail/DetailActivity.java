@@ -197,7 +197,8 @@ public class DetailActivity extends AppCompatActivity {
 
         btnDownload.setOnClickListener(v -> {
             String fileName = ImageDownloader.generateFileName(photo.id, photo.title);
-            ImageDownloader.downloadImage(this, photo.getFullUrl(), fileName);
+            ImageDownloader.downloadImage(this, photo.getFullUrl(), fileName, 
+                findViewById(android.R.id.content));
         });
     }
 

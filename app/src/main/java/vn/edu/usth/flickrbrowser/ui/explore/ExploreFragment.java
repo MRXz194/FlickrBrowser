@@ -43,11 +43,7 @@ public class ExploreFragment extends Fragment {
         GridLayoutManager layoutManager = new GridLayoutManager(requireContext(), 2);
         rv.setLayoutManager(layoutManager);
         
-        adapter=new ExploreAdapter(item -> {
-            android.content.Intent i = new android.content.Intent(requireContext(), vn.edu.usth.flickrbrowser.ui.detail.DetailActivity.class);
-            i.putExtra(vn.edu.usth.flickrbrowser.ui.detail.DetailActivity.EXTRA_PHOTO, item);
-            startActivity(i);
-        });
+        adapter=new ExploreAdapter(null); // Use default gallery behavior
         rv.setAdapter(adapter);
         
         // Setup infinite scroll

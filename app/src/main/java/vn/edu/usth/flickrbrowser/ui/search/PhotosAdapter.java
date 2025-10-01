@@ -55,7 +55,12 @@ public class PhotosAdapter extends RecyclerView.Adapter<PhotosAdapter.VH> {
                 .into(h.img);
         
         h.itemView.setOnClickListener(v -> {
-            if (onItemClick != null) onItemClick.onClick(it);
+            if (onItemClick != null) {
+                onItemClick.onClick(it);
+            } else {
+                // Default: Open gallery
+                openGallery(h.itemView.getContext(), h.getAdapterPosition());
+            }
         });
 
         // Favorite state - use the actual position item
@@ -95,12 +100,21 @@ public class PhotosAdapter extends RecyclerView.Adapter<PhotosAdapter.VH> {
         });
     }
 
-    @Override public int getItemCount() { return data.size(); }
+    @Override public int getItemCount(){ return data.size(); }
+
+    private void openGallery(android.content.Context context, int position) {
+        android.content.Intent intent = new android.content.Intent(context, 
+            vn.edu.usth.flickrbrowser.ui.gallery.GalleryActivity.class);
+        intent.putExtra(vn.edu.usth.flickrbrowser.ui.gallery.GalleryActivity.EXTRA_PHOTOS, 
+            (java.io.Serializable) new ArrayList<>(data));
+        intent.putExtra(vn.edu.usth.flickrbrowser.ui.gallery.GalleryActivity.EXTRA_POSITION, position);
+        context.startActivity(intent);
+    }
 
     static class VH extends RecyclerView.ViewHolder {
         ImageView img;
         ImageButton btnFavorite;
-        VH(@NonNull View itemView) {
+        VH(@NonNull View itemView){
             super(itemView);
             img = itemView.findViewById(R.id.imgPhoto);
             btnFavorite = itemView.findViewById(R.id.btnFavorite);

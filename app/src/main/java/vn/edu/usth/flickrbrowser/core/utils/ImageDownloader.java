@@ -1,16 +1,25 @@
 package vn.edu.usth.flickrbrowser.core.utils;
 
+import android.app.Activity;
 import android.app.DownloadManager;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Environment;
-import android.widget.Toast;
+import android.view.View;
+
+import vn.edu.usth.flickrbrowser.core.util.SnackbarHelper;
 
 public class ImageDownloader {
 
     public static void downloadImage(Context context, String imageUrl, String fileName) {
+        downloadImage(context, imageUrl, fileName, null);
+    }
+
+    public static void downloadImage(Context context, String imageUrl, String fileName, View parentView) {
         if (imageUrl == null || imageUrl.isEmpty()) {
-            Toast.makeText(context, "Invalid image URL", Toast.LENGTH_SHORT).show();
+            if (parentView != null) {
+                SnackbarHelper.show(parentView, "Invalid image URL", SnackbarHelper.Type.ERROR);
+            }
             return;
         }
 
@@ -41,13 +50,19 @@ public class ImageDownloader {
             DownloadManager downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
             if (downloadManager != null) {
                 downloadManager.enqueue(request);
-                Toast.makeText(context, "Downloading image... 📥", Toast.LENGTH_SHORT).show();
+                if (parentView != null) {
+                    SnackbarHelper.show(parentView, "Downloading image...", SnackbarHelper.Type.DOWNLOAD);
+                }
             } else {
-                Toast.makeText(context, "Download failed", Toast.LENGTH_SHORT).show();
+                if (parentView != null) {
+                    SnackbarHelper.show(parentView, "Download failed", SnackbarHelper.Type.ERROR);
+                }
             }
             
         } catch (Exception e) {
-            Toast.makeText(context, "Download error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            if (parentView != null) {
+                SnackbarHelper.show(parentView, "Download error: " + e.getMessage(), SnackbarHelper.Type.ERROR);
+            }
             android.util.Log.e("ImageDownloader", "Error downloading image", e);
         }
     }

@@ -62,7 +62,12 @@ public class ExploreAdapter extends RecyclerView.Adapter<ExploreAdapter.VH> {
                 .into(h.img);
         
         h.itemView.setOnClickListener(v -> {
-            if (onItemClick != null) onItemClick.onClick(p);
+            if (onItemClick != null) {
+                onItemClick.onClick(p);
+            } else {
+                // Default: Open gallery
+                openGallery(h.itemView.getContext(), h.getAdapterPosition());
+            }
         });
         
         FavoritesStore store = FavoritesStore.get(h.itemView.getContext());
@@ -104,6 +109,15 @@ public class ExploreAdapter extends RecyclerView.Adapter<ExploreAdapter.VH> {
     @Override
     public int getItemCount() {
         return data.size();
+    }
+
+    private void openGallery(android.content.Context context, int position) {
+        android.content.Intent intent = new android.content.Intent(context, 
+            vn.edu.usth.flickrbrowser.ui.gallery.GalleryActivity.class);
+        intent.putExtra(vn.edu.usth.flickrbrowser.ui.gallery.GalleryActivity.EXTRA_PHOTOS, 
+            (java.io.Serializable) new ArrayList<>(data));
+        intent.putExtra(vn.edu.usth.flickrbrowser.ui.gallery.GalleryActivity.EXTRA_POSITION, position);
+        context.startActivity(intent);
     }
 
     static class VH extends RecyclerView.ViewHolder {

@@ -53,11 +53,7 @@ public class SearchFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        adapter = new PhotosAdapter(item -> {
-            android.content.Intent i = new android.content.Intent(requireContext(), vn.edu.usth.flickrbrowser.ui.detail.DetailActivity.class);
-            i.putExtra(vn.edu.usth.flickrbrowser.ui.detail.DetailActivity.EXTRA_PHOTO, item);
-            startActivity(i);
-        });
+        adapter = new PhotosAdapter(); // Use default gallery behavior
         binding.rvPhotos.setAdapter(adapter);
 
         // Pull-to-Refresh
