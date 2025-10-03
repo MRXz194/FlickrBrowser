@@ -11,6 +11,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+ import java.util.Collections;
+ import java.util.Random;
+ import java.util.Set;
+ import java.util.HashSet;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -91,38 +95,85 @@ public class FlickrRepo {
     private static void getRecentFallback(CB cb) {
         new Thread(() -> {
             try {
-                java.net.URL url = new java.net.URL("https://www.flickr.com/services/feeds/photos_public.gne?format=json&nojsoncallback=1");
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-                conn.setConnectTimeout(10000);
-                conn.setReadTimeout(10000);
-                
-                int code = conn.getResponseCode();
-                Log.d(TAG, "Fallback API code=" + code);
-                
-                if (code == 200) {
-                    java.io.BufferedReader reader = new java.io.BufferedReader(
-                        new java.io.InputStreamReader(conn.getInputStream()));
-                    StringBuilder response = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        response.append(line);
+                // Build multiple variants (plain + different tagmode/lang) then merge + dedupe + shuffle
+                String base = "https://www.flickr.com/services/feeds/photos_public.gne?format=json&nojsoncallback=1";
+                String[] tagModes = {"any","all"};
+                String[] langs = {"en-us","es-us","fr-fr","de-de","it-it","pt-br","ja-jp","ko-kr"};
+
+                int idx = (int) ((System.currentTimeMillis() / 600000) % langs.length); // rotate every 10 minutes
+
+                // Prepare a small set of variant URLs
+                List<String> urls = new ArrayList<>();
+                urls.add(base); // plain feed
+                urls.add(base + "&tagmode=" + tagModes[idx % tagModes.length] + "&lang=" + langs[idx % langs.length]);
+                urls.add(base + "&tagmode=" + tagModes[(idx + 1) % tagModes.length] + "&lang=" + langs[(idx + 1) % langs.length]);
+
+                // Fetch and merge
+                List<PhotoItem> merged = new ArrayList<>();
+                for (String u : urls) {
+                    try {
+                        List<PhotoItem> part = fetchFeed(u);
+                        if (part != null && !part.isEmpty()) merged.addAll(part);
+                    } catch (Exception fe) {
+                        Log.d(TAG, "Variant fetch error: " + fe);
                     }
-                    reader.close();
-                    
-                    String body = response.toString();
-                    Log.d(TAG, "Fallback body length=" + body.length());
-                    List<PhotoItem> out = parseToPhotos(body);
-                    MAIN.post(() -> cb.ok(out));
-                } else {
-                    MAIN.post(() -> cb.err(new RuntimeException("Fallback HTTP " + code)));
                 }
-                conn.disconnect();
+
+                // Dedupe by id/fullUrl
+                List<PhotoItem> deduped = new ArrayList<>();
+                Set<String> seen = new HashSet<>();
+                for (PhotoItem p : merged) {
+                    String key = (p.id != null ? p.id : "") + "|" + (p.fullUrl != null ? p.fullUrl : "");
+                    if (!seen.contains(key)) {
+                        seen.add(key);
+                        deduped.add(p);
+                    }
+                }
+
+                if (deduped.isEmpty()) {
+                    throw new RuntimeException("Fallback returned no photos");
+                }
+
+                // Stable shuffle for the time window
+                long seed = System.currentTimeMillis() / 600000; // 10-minute buckets
+                Collections.shuffle(deduped, new Random(seed));
+
+                MAIN.post(() -> cb.ok(deduped));
             } catch (Exception e) {
                 Log.d(TAG, "Fallback error: " + e);
                 MAIN.post(() -> cb.err(e));
             }
         }).start();
+    }
+
+    // Helper: fetch and parse public feed
+    private static List<PhotoItem> fetchFeed(String urlStr) throws Exception {
+        Log.d(TAG, "Fetch feed: " + urlStr);
+        java.net.URL url = new java.net.URL(urlStr);
+        java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+        conn.setConnectTimeout(10000);
+        conn.setReadTimeout(10000);
+        try {
+            int code = conn.getResponseCode();
+            Log.d(TAG, "Feed HTTP code=" + code);
+            if (code == 200) {
+                java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+                String body = response.toString();
+                Log.d(TAG, "Feed body length=" + body.length());
+                return parseToPhotos(body);
+            }
+            return new ArrayList<>();
+        } finally {
+            conn.disconnect();
+        }
     }
 
     // ---- search ----
@@ -192,9 +243,21 @@ public class FlickrRepo {
                 String[] tagModes = {"any", "all"};
                 String tagMode = tagModes[pageIndex % tagModes.length];
                 
-                // Split query into tags for better results
+                // Split query into tags and rotate subsets for variety
                 String[] queryParts = query.trim().split("\\s+");
-                String tags = String.join(",", queryParts);
+                String tags;
+                if (queryParts.length > 1) {
+                    int maxSubset = Math.min(3, queryParts.length); // cap subset size to 3
+                    int subsetSize = 1 + (pageIndex % maxSubset);
+                    int start = pageIndex % queryParts.length;
+                    List<String> subset = new ArrayList<>();
+                    for (int i = 0; i < subsetSize; i++) {
+                        subset.add(queryParts[(start + i) % queryParts.length]);
+                    }
+                    tags = String.join(",", subset);
+                } else {
+                    tags = query.trim();
+                }
                 String encodedTags = java.net.URLEncoder.encode(tags, "UTF-8");
                 
                 // Build URL with variety parameters
@@ -252,7 +315,11 @@ public class FlickrRepo {
                         }
                     }
                     
-                    // Add to cache
+                    // Shuffle to diversify order and then add to cache
+                    if (!uniquePhotos.isEmpty()) {
+                        long seed = cacheKey.hashCode() + pageIndex;
+                        Collections.shuffle(uniquePhotos, new Random(seed));
+                    }
                     cachedPhotos.addAll(uniquePhotos);
                     fallbackCache.put(cacheKey, cachedPhotos);
                     
